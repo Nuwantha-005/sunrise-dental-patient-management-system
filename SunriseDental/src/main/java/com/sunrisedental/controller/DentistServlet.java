@@ -1,0 +1,84 @@
+package com.sunrisedental.controller;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+
+import com.sunrisedental.dao.DentistDAO;
+import com.sunrisedental.model.Dentist;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+public class DentistServlet extends HttpServlet {
+
+    private final DentistDAO dentistDAO = new DentistDAO();
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String path = getRequestPath(req);
+        try {
+            if (path.equals("/dentists/list")) {
+                listDentists(req, resp);
+            } else if (path.equals("/dentists/add")) {
+                req.setAttribute("pageTitle", "Add Dentist");
+                req.setAttribute("activeMenu", "dentists");
+                req.getRequestDispatcher("/dentists/form.jsp").forward(req, resp);
+            } else if (path.startsWith("/dentists/edit/")) {
+                int id = Integer.parseInt(path.substring("/dentists/edit/".length()));
+                req.setAttribute("dentist", dentistDAO.findById(id));
+                req.setAttribute("pageTitle", "Edit Dentist");
+                req.setAttribute("activeMenu", "dentists");
+                req.getRequestDispatcher("/dentists/form.jsp").forward(req, resp);
+            } else if (path.startsWith("/dentists/delete/")) {
+                int id = Integer.parseInt(path.substring("/dentists/delete/".length()));
+                dentistDAO.delete(id);
+                resp.sendRedirect(req.getContextPath() + "/dentists/list");
+            } else {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        } catch (SQLException e) {
+            throw new ServletException("Database error", e);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String path = getRequestPath(req);
+        try {
+            Dentist dentist = new Dentist();
+            dentist.setName(req.getParameter("name"));
+            dentist.setSpecialization(req.getParameter("specialization"));
+            dentist.setContact(req.getParameter("contact"));
+
+            if (path.startsWith("/dentists/edit/")) {
+                dentist.setId(Integer.parseInt(path.substring("/dentists/edit/".length())));
+                dentistDAO.update(dentist);
+            } else {
+                dentistDAO.insert(dentist);
+            }
+            resp.sendRedirect(req.getContextPath() + "/dentists/list");
+        } catch (SQLException e) {
+            throw new ServletException("Database error", e);
+        }
+    }
+
+    private String getRequestPath(HttpServletRequest req) {
+        String servletPath = req.getServletPath();
+        String pathInfo = req.getPathInfo();
+        return pathInfo != null ? servletPath + pathInfo : servletPath;
+    }
+
+    private void listDentists(HttpServletRequest req, HttpServletResponse resp)
+            throws SQLException, ServletException, IOException {
+        List<Dentist> dentists = dentistDAO.findAll();
+        req.setAttribute("dentists", dentists);
+        req.setAttribute("pageTitle", "Dentists List");
+        req.setAttribute("activeMenu", "dentists");
+        req.getRequestDispatcher("/dentists/list.jsp").forward(req, resp);
+    }
+}
