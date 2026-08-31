@@ -6,11 +6,13 @@ import java.util.List;
 
 import com.sunrisedental.dao.DentistDAO;
 import com.sunrisedental.model.Dentist;
+import com.sunrisedental.model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 public class DentistServlet extends HttpServlet {
 
@@ -24,16 +26,20 @@ public class DentistServlet extends HttpServlet {
             if (path.equals("/dentists/list")) {
                 listDentists(req, resp);
             } else if (path.equals("/dentists/add")) {
+                if (!requireAdmin(req, resp)) return;
+                req.setAttribute("nextDentistCode", dentistDAO.generateNextDentistCode());
                 req.setAttribute("pageTitle", "Add Dentist");
                 req.setAttribute("activeMenu", "dentists");
                 req.getRequestDispatcher("/dentists/form.jsp").forward(req, resp);
             } else if (path.startsWith("/dentists/edit/")) {
+                if (!requireAdmin(req, resp)) return;
                 int id = Integer.parseInt(path.substring("/dentists/edit/".length()));
                 req.setAttribute("dentist", dentistDAO.findById(id));
                 req.setAttribute("pageTitle", "Edit Dentist");
                 req.setAttribute("activeMenu", "dentists");
                 req.getRequestDispatcher("/dentists/form.jsp").forward(req, resp);
             } else if (path.startsWith("/dentists/delete/")) {
+                if (!requireAdmin(req, resp)) return;
                 int id = Integer.parseInt(path.substring("/dentists/delete/".length()));
                 dentistDAO.delete(id);
                 resp.sendRedirect(req.getContextPath() + "/dentists/list");
@@ -48,6 +54,8 @@ public class DentistServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+        if (!requireAdmin(req, resp)) return;
+
         String path = getRequestPath(req);
         try {
             Dentist dentist = new Dentist();
@@ -65,6 +73,16 @@ public class DentistServlet extends HttpServlet {
         } catch (SQLException e) {
             throw new ServletException("Database error", e);
         }
+    }
+
+    private boolean requireAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        HttpSession session = req.getSession(false);
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+        if (user == null || !user.isAdmin()) {
+            resp.sendRedirect(req.getContextPath() + "/dentists/list?error=unauthorized");
+            return false;
+        }
+        return true;
     }
 
     private String getRequestPath(HttpServletRequest req) {
