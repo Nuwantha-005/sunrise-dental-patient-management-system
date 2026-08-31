@@ -12,6 +12,7 @@ import com.sunrisedental.dao.PatientDAO;
 import com.sunrisedental.model.Appointment;
 import com.sunrisedental.model.Dentist;
 import com.sunrisedental.model.Patient;
+import com.sunrisedental.model.User;
 import com.sunrisedental.util.EmailUtil;
 import com.sunrisedental.util.EmailUtil.EmailRecord;
 
@@ -19,6 +20,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 public class AppointmentServlet extends HttpServlet {
 
@@ -46,6 +48,9 @@ public class AppointmentServlet extends HttpServlet {
             } else if (path.startsWith("/appointments/resend-email/")) {
                 int id = Integer.parseInt(path.substring("/appointments/resend-email/".length()));
                 resendEmail(req, resp, id);
+            } else if (path.startsWith("/appointments/delete/")) {
+                int id = Integer.parseInt(path.substring("/appointments/delete/".length()));
+                deleteAppointment(req, resp, id);
             } else {
                 resp.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -102,7 +107,19 @@ public class AppointmentServlet extends HttpServlet {
         String email = req.getParameter("email");
         String address = req.getParameter("address");
         int dentistId = Integer.parseInt(req.getParameter("dentistId"));
-        String treatmentType = req.getParameter("treatmentType");
+        
+        String[] treatmentTypeArr = req.getParameterValues("treatmentType");
+        StringBuilder treatmentBuilder = new StringBuilder();
+        if (treatmentTypeArr != null) {
+            for (String t : treatmentTypeArr) {
+                if (t != null && !t.isBlank()) {
+                    if (treatmentBuilder.length() > 0) treatmentBuilder.append(", ");
+                    treatmentBuilder.append(t.trim());
+                }
+            }
+        }
+        String treatmentType = treatmentBuilder.length() > 0 ? treatmentBuilder.toString() : "Dental Checkup";
+        
         Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
         Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
 
@@ -123,6 +140,7 @@ public class AppointmentServlet extends HttpServlet {
             req.setAttribute("inputEmail", email);
             req.setAttribute("inputAddress", address);
             req.setAttribute("inputDentistId", dentistId);
+            req.setAttribute("inputTreatments", treatmentTypeArr);
             req.setAttribute("inputTreatmentType", treatmentType);
             req.setAttribute("inputAppointmentDate", req.getParameter("appointmentDate"));
             req.setAttribute("inputAppointmentTime", req.getParameter("appointmentTime"));
@@ -189,7 +207,7 @@ public class AppointmentServlet extends HttpServlet {
         // Dispatch Confirmation Email
         EmailUtil.sendAppointmentConfirmation(appointment, patient);
 
-        resp.sendRedirect(req.getContextPath() + "/appointments/search?appointmentNo=" + appNo + "&success=registered&emailSent=1");
+        resp.sendRedirect(req.getContextPath() + "/appointments/history?success=registered&appointmentNo=" + appNo + "&emailSent=1");
     }
 
     private void showSearchPage(HttpServletRequest req, HttpServletResponse resp)
@@ -261,13 +279,7 @@ public class AppointmentServlet extends HttpServlet {
 
     private void completeAppointment(HttpServletRequest req, HttpServletResponse resp, int id)
             throws SQLException, IOException {
-        Appointment appointment = appointmentDAO.findById(id);
-        if (appointment != null) {
-            appointmentDAO.updateStatus(id, "Completed");
-            resp.sendRedirect(req.getContextPath() + "/appointments/history?success=completed&appointmentNo=" + appointment.getAppointmentNo());
-        } else {
-            resp.sendRedirect(req.getContextPath() + "/appointments/history");
-        }
+        resp.sendRedirect(req.getContextPath() + "/billing/generate/" + id);
     }
 
     private void showEditForm(HttpServletRequest req, HttpServletResponse resp, int id)
@@ -293,7 +305,19 @@ public class AppointmentServlet extends HttpServlet {
         String email = req.getParameter("email");
         String address = req.getParameter("address");
         int dentistId = Integer.parseInt(req.getParameter("dentistId"));
-        String treatmentType = req.getParameter("treatmentType");
+        
+        String[] treatmentTypeArr = req.getParameterValues("treatmentType");
+        StringBuilder treatmentBuilder = new StringBuilder();
+        if (treatmentTypeArr != null) {
+            for (String t : treatmentTypeArr) {
+                if (t != null && !t.isBlank()) {
+                    if (treatmentBuilder.length() > 0) treatmentBuilder.append(", ");
+                    treatmentBuilder.append(t.trim());
+                }
+            }
+        }
+        String treatmentType = treatmentBuilder.length() > 0 ? treatmentBuilder.toString() : "Dental Checkup";
+        
         Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
         Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
         String status = req.getParameter("status");
@@ -340,5 +364,17 @@ public class AppointmentServlet extends HttpServlet {
         } else {
             resp.sendRedirect(req.getContextPath() + "/appointments/search");
         }
+    }
+
+    private void deleteAppointment(HttpServletRequest req, HttpServletResponse resp, int id)
+            throws SQLException, IOException {
+        HttpSession session = req.getSession(false);
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+        if (user == null || !user.isAdmin()) {
+            resp.sendRedirect(req.getContextPath() + "/appointments/history?error=unauthorized");
+            return;
+        }
+        appointmentDAO.delete(id);
+        resp.sendRedirect(req.getContextPath() + "/appointments/history?success=deleted");
     }
 }

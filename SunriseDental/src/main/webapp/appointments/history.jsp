@@ -4,10 +4,47 @@
 
 <h1 class="page-title">Booking and Treatment History</h1>
 
-<% if ("completed".equals(request.getParameter("success"))) { %>
-    <div class="alert alert-success" style="display:flex; align-items:center; gap:8px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <span><strong>Appointment Completed!</strong> Appointment <strong><%= request.getParameter("appointmentNo") != null ? request.getParameter("appointmentNo") : "" %></strong> has been marked as <strong>Completed</strong> and archived into Booking History.</span>
+<% if ("registered".equals(request.getParameter("success"))) { %>
+    <div class="alert alert-success" style="display:flex; align-items:center; gap:8px; margin-bottom:20px; background:#ecfdf5; border:1px solid #10b981; color:#065f46; border-radius:8px; padding:12px 16px;">
+        <span style="font-size:1.3rem;">✅</span>
+        <div>
+            <strong>Appointment Registered!</strong> Appointment <strong><%= request.getParameter("appointmentNo") != null ? request.getParameter("appointmentNo") : "" %></strong> has been booked successfully and recorded in Booking History.
+            <% if ("1".equals(request.getParameter("emailSent"))) { %>
+            <div style="font-size:0.85rem; color:#047857; margin-top:2px;">📧 Confirmation email has been sent to the patient.</div>
+            <% } %>
+        </div>
+    </div>
+<% } else if ("completed".equals(request.getParameter("success"))) { %>
+    <div class="alert alert-success" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; background:#ecfdf5; border:1px solid #10b981; color:#065f46; border-radius:8px; padding:14px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.4rem;">✅</span>
+            <div>
+                <strong>Appointment Completed &amp; Billed!</strong> 
+                Appointment <strong><%= request.getParameter("appointmentNo") != null ? request.getParameter("appointmentNo") : "" %></strong> 
+                <% if (request.getParameter("billNo") != null && !request.getParameter("billNo").isBlank()) { %>
+                    (Invoice No: <strong><%= request.getParameter("billNo") %></strong>)
+                <% } %>
+                has been marked as <strong>Completed</strong> and archived into Booking History.
+            </div>
+        </div>
+        <% if (request.getParameter("receiptId") != null && !request.getParameter("receiptId").isBlank()) { %>
+        <div>
+            <a href="${pageContext.request.contextPath}/billing/receipt/<%= request.getParameter("receiptId") %>" 
+               class="btn btn-primary btn-sm" style="display:inline-flex; align-items:center; gap:6px; font-weight:600; padding:6px 14px;">
+                🧾 View / Print Official Receipt
+            </a>
+        </div>
+        <% } %>
+    </div>
+<% } else if ("deleted".equals(request.getParameter("success"))) { %>
+    <div class="alert alert-success" style="display:flex; align-items:center; gap:8px; margin-bottom:20px; background:#fef2f2; border:1px solid #ef4444; color:#991b1b; border-radius:8px; padding:12px 16px;">
+        <span style="font-size:1.3rem;">🗑️</span>
+        <span><strong>Appointment Deleted:</strong> The selected appointment booking and associated records have been removed from the system.</span>
+    </div>
+<% } else if ("unauthorized".equals(request.getParameter("error"))) { %>
+    <div class="alert alert-danger" style="display:flex; align-items:center; gap:8px; margin-bottom:20px; background:#fef2f2; border:1px solid #ef4444; color:#991b1b; border-radius:8px; padding:12px 16px;">
+        <span style="font-size:1.3rem;">🚫</span>
+        <span><strong>Access Denied:</strong> Only Administrators are permitted to delete appointment bookings.</span>
     </div>
 <% } %>
 
@@ -147,12 +184,12 @@
                         </svg>
                     </a>
 
-                    <!-- Complete Action (if not already completed) -->
+                    <!-- Complete Action (Proceed to Billing) -->
                     <% if (!"Completed".equals(a.getStatus()) && !"Cancelled".equals(a.getStatus())) { %>
                         <a href="${pageContext.request.contextPath}/appointments/complete/<%= a.getId() %>"
                            class="btn-action-complete"
-                           title="Mark as Completed"
-                           onclick="return confirm('Complete this appointment and archive into history?')">
+                           title="Complete Appointment &amp; Generate Bill"
+                           onclick="return confirm('Complete appointment <%= a.getAppointmentNo() %> and proceed to Bill Generation?')">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M20 6L9 17l-5-5"/>
                             </svg>
@@ -168,6 +205,20 @@
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                     </a>
+
+                    <!-- Admin Delete Action -->
+                    <% if (currentUser != null && currentUser.isAdmin()) { %>
+                    <a href="${pageContext.request.contextPath}/appointments/delete/<%= a.getId() %>"
+                       class="btn-action-delete"
+                       style="color:#ef4444;"
+                       title="Delete Appointment (Admin Only)"
+                       onclick="return confirm('Are you sure you want to permanently delete appointment <%= a.getAppointmentNo() %> for patient <%= a.getPatientName().replace("'", "\\'") %>?')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </a>
+                    <% } %>
                 </td>
             </tr>
         <%

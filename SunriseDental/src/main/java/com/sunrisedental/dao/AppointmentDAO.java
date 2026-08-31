@@ -182,6 +182,37 @@ public class AppointmentDAO {
         }
     }
 
+    public boolean delete(int id) throws SQLException {
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Safely delete any linked bill if bills table exists
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM bills WHERE appointment_id = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                } catch (SQLException ignored) {
+                    // Ignore if bills table is absent or not linked
+                }
+
+                // Delete the appointment
+                String deleteAppSql = "DELETE FROM appointments WHERE id = ?";
+                boolean success;
+                try (PreparedStatement ps = conn.prepareStatement(deleteAppSql)) {
+                    ps.setInt(1, id);
+                    success = ps.executeUpdate() > 0;
+                }
+
+                conn.commit();
+                return success;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     public int countAll() throws SQLException {
         return countByCondition("");
     }
