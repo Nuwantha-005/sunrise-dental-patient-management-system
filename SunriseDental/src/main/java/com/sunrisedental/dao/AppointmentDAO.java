@@ -313,6 +313,61 @@ public class AppointmentDAO {
         return null;
     }
 
+    /** Saves generated portal credentials (username = appointment_no, hashed password) for a given appointment. */
+    public boolean savePatientCredentials(int appointmentId, String username, String hashedPassword) throws SQLException {
+        // Add columns if they don't exist yet (schema migration safety)
+        try (Connection conn = DBConnection.getConnection();
+             Statement st = conn.createStatement()) {
+            try { st.execute("ALTER TABLE appointments ADD COLUMN patient_username VARCHAR(50) NULL"); } catch (SQLException ignored) {}
+            try { st.execute("ALTER TABLE appointments ADD COLUMN patient_password VARCHAR(255) NULL"); } catch (SQLException ignored) {}
+        }
+        String sql = "UPDATE appointments SET patient_username = ?, patient_password = ? WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, hashedPassword);
+            ps.setInt(3, appointmentId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Authenticates a patient portal login.
+     * Username = Appointment No (e.g. APT-001) OR Patient ID Code (e.g. PAT-001), password = SHA-256 hashed.
+     * Returns the appointment if credentials match, null otherwise.
+     */
+    public Appointment findByPatientLogin(String username, String hashedPassword) throws SQLException {
+        String sql = BASE_SELECT + "WHERE (UPPER(a.patient_username) = UPPER(?) OR UPPER(p.patient_code) = UPPER(?)) AND a.patient_password = ? ORDER BY a.id DESC LIMIT 1";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, username);
+            ps.setString(3, hashedPassword);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapAppointment(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Returns all appointments for the same patient email (for patient portal history). */
+    public List<Appointment> findAllByPatientEmail(String email) throws SQLException {
+        String sql = BASE_SELECT + "WHERE p.email = ? ORDER BY a.appointment_date DESC, a.appointment_time DESC";
+        List<Appointment> list = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapAppointment(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     private int countByCondition(String condition) throws SQLException {
         String sql = "SELECT COUNT(*) FROM appointments " + condition;
         try (Connection conn = DBConnection.getConnection();
@@ -349,12 +404,11 @@ public class AppointmentDAO {
         a.setStatus(rs.getString("status"));
         a.setPatientName(rs.getString("patient_name"));
         a.setPatientContact(rs.getString("patient_contact"));
-        try {
-            a.setPatientEmail(rs.getString("patient_email"));
-        } catch (SQLException ignored) {
-        }
+        try { a.setPatientEmail(rs.getString("patient_email")); } catch (SQLException ignored) {}
         a.setPatientAddress(rs.getString("patient_address"));
         a.setDentistName(rs.getString("dentist_name"));
+        try { a.setPatientUsername(rs.getString("patient_username")); } catch (SQLException ignored) {}
+        try { a.setPatientPasswordHash(rs.getString("patient_password")); } catch (SQLException ignored) {}
         return a;
     }
 }

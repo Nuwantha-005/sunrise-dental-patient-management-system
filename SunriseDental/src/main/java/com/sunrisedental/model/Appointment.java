@@ -17,9 +17,12 @@ public class Appointment {
     private Date appointmentDate;
     private Time appointmentTime;
     private String status;
+    private String patientUsername;
+    private String patientPasswordHash;
 
     public Appointment() {
     }
+
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -59,4 +62,10 @@ public class Appointment {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getPatientUsername() { return patientUsername; }
+    public void setPatientUsername(String patientUsername) { this.patientUsername = patientUsername; }
+
+    public String getPatientPasswordHash() { return patientPasswordHash; }
+    public void setPatientPasswordHash(String patientPasswordHash) { this.patientPasswordHash = patientPasswordHash; }
 }

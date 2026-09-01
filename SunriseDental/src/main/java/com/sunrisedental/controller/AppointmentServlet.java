@@ -9,9 +9,11 @@ import java.util.List;
 import com.sunrisedental.dao.AppointmentDAO;
 import com.sunrisedental.dao.DentistDAO;
 import com.sunrisedental.dao.PatientDAO;
+import com.sunrisedental.dao.TreatmentDAO;
 import com.sunrisedental.model.Appointment;
 import com.sunrisedental.model.Dentist;
 import com.sunrisedental.model.Patient;
+import com.sunrisedental.model.Treatment;
 import com.sunrisedental.model.User;
 import com.sunrisedental.util.EmailUtil;
 import com.sunrisedental.util.EmailUtil.EmailRecord;
@@ -27,6 +29,7 @@ public class AppointmentServlet extends HttpServlet {
     private final AppointmentDAO appointmentDAO = new AppointmentDAO();
     private final PatientDAO patientDAO = new PatientDAO();
     private final DentistDAO dentistDAO = new DentistDAO();
+    private final TreatmentDAO treatmentDAO = new TreatmentDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -91,8 +94,10 @@ public class AppointmentServlet extends HttpServlet {
             throws SQLException, ServletException, IOException {
         List<Dentist> dentists = dentistDAO.findAll();
         List<Patient> patients = patientDAO.findAll();
+        List<Treatment> treatments = treatmentDAO.findAll();
         req.setAttribute("dentists", dentists);
         req.setAttribute("patients", patients);
+        req.setAttribute("treatments", treatments);
         req.setAttribute("nextAppointmentNo", appointmentDAO.generateNextAppointmentNo());
         req.setAttribute("pageTitle", "Register New Appointment");
         req.setAttribute("activeMenu", "appointments");
@@ -122,6 +127,39 @@ public class AppointmentServlet extends HttpServlet {
         
         Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
         Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
+
+        // Availability check: ensure dentist is available on the selected day of the week for the selected procedures
+        String selectedDayName = appointmentDate.toLocalDate().getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH);
+        List<Treatment> dentistTreatments = treatmentDAO.findByDentistId(dentistId);
+        if (treatmentTypeArr != null && dentistTreatments != null && !dentistTreatments.isEmpty()) {
+            for (String selectedTName : treatmentTypeArr) {
+                if (selectedTName != null && !selectedTName.isBlank()) {
+                    for (Treatment dt : dentistTreatments) {
+                        if (dt.getTreatmentName().equalsIgnoreCase(selectedTName.trim())) {
+                            if (dt.getAvailableDays() != null && !dt.getAvailableDays().toLowerCase().contains(selectedDayName.toLowerCase())) {
+                                Dentist dentist = dentistDAO.findById(dentistId);
+                                String dName = (dentist != null) ? dentist.getName() : "The selected dentist";
+                                req.setAttribute("errorMessage", "⚠️ Schedule Availability Alert: Dr. " + dName + " is NOT available on " + selectedDayName + "s for procedure '" + dt.getTreatmentName() + "'. Doctor's available schedule days: " + dt.getAvailableDays() + ".");
+
+                                // Preserve form inputs
+                                req.setAttribute("inputPatientId", patientIdParam);
+                                req.setAttribute("inputPatientName", patientName);
+                                req.setAttribute("inputContact", contact);
+                                req.setAttribute("inputEmail", email);
+                                req.setAttribute("inputAddress", address);
+                                req.setAttribute("inputDentistId", dentistId);
+                                req.setAttribute("inputTreatments", treatmentTypeArr);
+                                req.setAttribute("inputAppointmentDate", req.getParameter("appointmentDate"));
+                                req.setAttribute("inputAppointmentTime", req.getParameter("appointmentTime"));
+
+                                showRegisterForm(req, resp);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Conflict check: ensure no other active appointment exists for this dentist on this date & time
         Appointment conflict = appointmentDAO.findConflictingAppointment(dentistId, appointmentDate, appointmentTime, -1);
@@ -204,11 +242,29 @@ public class AppointmentServlet extends HttpServlet {
         appointment.setPatientContact(contact);
         appointment.setPatientEmail(email);
 
-        // Dispatch Confirmation Email
-        EmailUtil.sendAppointmentConfirmation(appointment, patient);
+        // Generate Patient Portal Credentials
+        // Username = appointment number (e.g. APT-004), Password = random 8-char alphanumeric
+        String rawPortalPassword = generateRandomPassword(8);
+        appointment.setPatientUsername(appNo);
+        appointmentDAO.savePatientCredentials(appointmentId, appNo, com.sunrisedental.util.PasswordUtil.hash(rawPortalPassword));
+
+        // Dispatch Confirmation Email (includes patient portal login credentials)
+        EmailUtil.sendAppointmentConfirmation(appointment, patient, rawPortalPassword);
 
         resp.sendRedirect(req.getContextPath() + "/appointments/history?success=registered&appointmentNo=" + appNo + "&emailSent=1");
     }
+
+    /** Generates a secure random alphanumeric password of the given length. */
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+        java.util.Random random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
 
     private void showSearchPage(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException, SQLException {
@@ -286,10 +342,12 @@ public class AppointmentServlet extends HttpServlet {
             throws SQLException, ServletException, IOException {
         Appointment appointment = appointmentDAO.findById(id);
         List<Dentist> dentists = dentistDAO.findAll();
+        List<Treatment> treatments = treatmentDAO.findAll();
         Patient patient = patientDAO.findById(appointment.getPatientId());
         req.setAttribute("appointment", appointment);
         req.setAttribute("patient", patient);
         req.setAttribute("dentists", dentists);
+        req.setAttribute("treatments", treatments);
         req.setAttribute("pageTitle", "Edit Appointment");
         req.setAttribute("activeMenu", "appointments");
         req.getRequestDispatcher("/appointments/edit.jsp").forward(req, resp);
@@ -321,6 +379,28 @@ public class AppointmentServlet extends HttpServlet {
         Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
         Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
         String status = req.getParameter("status");
+
+        // Availability check: ensure dentist is available on the selected day of the week for the selected procedures
+        String selectedDayName = appointmentDate.toLocalDate().getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH);
+        List<Treatment> dentistTreatments = treatmentDAO.findByDentistId(dentistId);
+        if (treatmentTypeArr != null && dentistTreatments != null && !dentistTreatments.isEmpty()) {
+            for (String selectedTName : treatmentTypeArr) {
+                if (selectedTName != null && !selectedTName.isBlank()) {
+                    for (Treatment dt : dentistTreatments) {
+                        if (dt.getTreatmentName().equalsIgnoreCase(selectedTName.trim())) {
+                            if (dt.getAvailableDays() != null && !dt.getAvailableDays().toLowerCase().contains(selectedDayName.toLowerCase())) {
+                                Dentist dentist = dentistDAO.findById(dentistId);
+                                String dName = (dentist != null) ? dentist.getName() : "The selected dentist";
+                                req.setAttribute("errorMessage", "⚠️ Schedule Availability Alert: Dr. " + dName + " is NOT available on " + selectedDayName + "s for procedure '" + dt.getTreatmentName() + "'. Doctor's available schedule days: " + dt.getAvailableDays() + ".");
+
+                                showEditForm(req, resp, id);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (!"Cancelled".equalsIgnoreCase(status)) {
             Appointment conflict = appointmentDAO.findConflictingAppointment(dentistId, appointmentDate, appointmentTime, id);
