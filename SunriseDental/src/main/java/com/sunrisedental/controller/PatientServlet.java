@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 public class PatientServlet extends HttpServlet {
 
@@ -35,6 +36,12 @@ public class PatientServlet extends HttpServlet {
                 req.setAttribute("activeMenu", "patients");
                 req.getRequestDispatcher("/patients/form.jsp").forward(req, resp);
             } else if (path.startsWith("/patients/delete/")) {
+                HttpSession session = req.getSession(false);
+                com.sunrisedental.model.User user = (session != null) ? (com.sunrisedental.model.User) session.getAttribute("user") : null;
+                if (user == null || !user.isAdmin()) {
+                    resp.sendRedirect(req.getContextPath() + "/patients/list?error=unauthorized");
+                    return;
+                }
                 int id = Integer.parseInt(path.substring("/patients/delete/".length()));
                 patientDAO.delete(id);
                 resp.sendRedirect(req.getContextPath() + "/patients/list");
