@@ -81,12 +81,25 @@ public class EmailUtil {
     }
 
     /**
-     * Sends appointment confirmation email asynchronously in the background.
+     * Sends appointment confirmation email asynchronously in the background (no credentials).
      */
     public static void sendAppointmentConfirmationAsync(Appointment appointment, Patient patient) {
         EXECUTOR.submit(() -> {
             try {
-                sendAppointmentConfirmation(appointment, patient);
+                sendAppointmentConfirmation(appointment, patient, null);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Failed to send confirmation email for appointment: " + appointment.getAppointmentNo(), e);
+            }
+        });
+    }
+
+    /**
+     * Sends appointment confirmation email asynchronously with patient portal credentials.
+     */
+    public static void sendAppointmentConfirmationAsync(Appointment appointment, Patient patient, String rawPassword) {
+        EXECUTOR.submit(() -> {
+            try {
+                sendAppointmentConfirmation(appointment, patient, rawPassword);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Failed to send confirmation email for appointment: " + appointment.getAppointmentNo(), e);
             }
@@ -97,6 +110,13 @@ public class EmailUtil {
      * Builds and dispatches appointment confirmation email (SMTP if enabled, otherwise simulated).
      */
     public static EmailRecord sendAppointmentConfirmation(Appointment appointment, Patient patient) {
+        return sendAppointmentConfirmation(appointment, patient, null);
+    }
+
+    /**
+     * Builds and dispatches appointment confirmation email including patient portal credentials.
+     */
+    public static EmailRecord sendAppointmentConfirmation(Appointment appointment, Patient patient, String rawPassword) {
         loadConfiguration(); // Refresh configuration so edits to email.properties take effect immediately
         String toEmail = (patient != null && patient.getEmail() != null && !patient.getEmail().isBlank())
                 ? patient.getEmail().trim()
@@ -113,7 +133,7 @@ public class EmailUtil {
         String timeStr = appointment.getAppointmentTime() != null ? appointment.getAppointmentTime().toString() : "To be confirmed";
 
         String subject = "Appointment Confirmation [" + appointmentNo + "] - Sunrise Dental Clinic";
-        String htmlBody = buildHtmlTemplate(appointmentNo, patientName, dentistName, treatment, dateStr, timeStr);
+        String htmlBody = buildHtmlTemplate(appointmentNo, patientName, dentistName, treatment, dateStr, timeStr, rawPassword);
 
         boolean enabled = Boolean.parseBoolean(CONFIG.getProperty("mail.smtp.enabled", "false"));
         boolean smtpSuccess = false;
@@ -264,10 +284,37 @@ public class EmailUtil {
      */
     private static String buildHtmlTemplate(String appointmentNo, String patientName,
                                             String dentistName, String treatment,
-                                            String dateStr, String timeStr) {
+                                            String dateStr, String timeStr, String rawPassword) {
         String clinicName = CONFIG.getProperty("clinic.name", "Sunrise Dental Clinic");
         String clinicPhone = CONFIG.getProperty("clinic.phone", "+94 11 234 5678");
         String clinicAddress = CONFIG.getProperty("clinic.address", "No. 123, Galle Road, Colombo 03");
+
+        // Patient Portal Credentials Section (shown only if password is provided)
+        String credentialsSection = "";
+        if (rawPassword != null && !rawPassword.isBlank()) {
+            credentialsSection = ""
+                + "    <div style='background: #f0f9ff; border: 1.5px solid #0284c7; border-radius: 10px; padding: 20px 22px; margin-bottom: 25px;'>"
+                + "      <p style='margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #1a5276; display: flex; align-items: center; gap: 8px;'>"
+                + "        <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#0284c7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='11' width='18' height='11' rx='2' ry='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
+                + "        Your Patient Portal Access"
+                + "      </p>"
+                + "      <p style='margin: 0 0 12px 0; font-size: 13px; color: #334155; line-height: 1.6;'>You can now log in to your personal <strong>Patient Dashboard</strong> to view your appointment details and billing information anytime.</p>"
+                + "      <table style='width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; border:1px solid #bae6fd;'>"
+                + "        <tr><td style='padding:10px 14px; font-size:13px; font-weight:600; color:#475569; background:#f8fafc; width:38%;'>"
+                + "              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='#0284c7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle; margin-right:4px;'><path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg> Username"
+                + "            </td>"
+                + "            <td style='padding:10px 14px; font-size:14px; font-family:monospace; font-weight:700; color:#1a5276; background:#fff; letter-spacing:1px;'>" + appointmentNo + "</td></tr>"
+                + "        <tr><td style='padding:10px 14px; font-size:13px; font-weight:600; color:#475569; background:#f8fafc; border-top:1px solid #f1f5f9;'>"
+                + "              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='#166534' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle; margin-right:4px;'><rect x='3' y='11' width='18' height='11' rx='2' ry='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg> Password"
+                + "            </td>"
+                + "            <td style='padding:10px 14px; font-size:14px; font-family:monospace; font-weight:700; color:#166534; background:#fff; border-top:1px solid #f1f5f9; letter-spacing:2px;'>" + rawPassword + "</td></tr>"
+                + "      </table>"
+                + "      <p style='margin: 12px 0 0 0; font-size: 12px; color: #64748b;'>"
+                + "        <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#0284c7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle; margin-right:4px;'><circle cx='12' cy='12' r='10'/><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>"
+                + "        Keep your credentials safe. You can use your <strong>Appointment Number</strong> as the username."
+                + "      </p>"
+                + "    </div>";
+        }
 
         return "<!DOCTYPE html>"
                 + "<html>"
@@ -276,32 +323,32 @@ public class EmailUtil {
                 + "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
                 + "<title>Appointment Confirmation</title>"
                 + "<style>"
-                + "body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #2c3e50; }"
-                + ".container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }"
-                + ".header { background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%); color: #ffffff; padding: 30px 25px; text-align: center; }"
-                + ".header h1 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }"
+                + "body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }"
+                + ".container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }"
+                + ".header { background: linear-gradient(135deg, #1a5276 0%, #0284c7 100%); color: #ffffff; padding: 30px 25px; text-align: center; }"
+                + ".header h1 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px; }"
                 + ".header p { margin: 0; font-size: 13px; opacity: 0.9; }"
                 + ".content { padding: 30px 25px; }"
                 + ".badge-box { text-align: center; margin-bottom: 25px; }"
-                + ".badge-no { display: inline-block; background: #eaf2f8; color: #1a5276; font-weight: bold; font-size: 16px; padding: 8px 18px; border-radius: 20px; border: 1px solid #aed6f1; }"
+                + ".badge-no { display: inline-block; background: #f0f9ff; color: #1a5276; font-weight: bold; font-size: 16px; padding: 8px 18px; border-radius: 20px; border: 1px solid #bae6fd; }"
                 + ".details-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }"
-                + ".details-table td { padding: 12px 14px; border-bottom: 1px solid #f0f4f8; font-size: 14px; }"
-                + ".details-table td.label { font-weight: 600; color: #7f8c8d; width: 38%; background: #fafbfc; }"
-                + ".details-table td.value { color: #2c3e50; font-weight: 500; }"
-                + ".info-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 14px 16px; border-radius: 4px; margin-bottom: 25px; font-size: 13px; color: #7d6608; line-height: 1.5; }"
-                + ".clinic-box { background: #f0f4f8; padding: 16px; border-radius: 8px; font-size: 13px; color: #34495e; }"
-                + ".footer { text-align: center; padding: 20px; font-size: 12px; color: #95a5a6; background: #fafbfc; border-top: 1px solid #edf2f7; }"
+                + ".details-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }"
+                + ".details-table td.label { font-weight: 600; color: #64748b; width: 38%; background: #f8fafc; }"
+                + ".details-table td.value { color: #1e293b; font-weight: 500; }"
+                + ".info-box { background: #fffbeb; border-left: 4px solid #d97706; padding: 14px 16px; border-radius: 4px; margin-bottom: 25px; font-size: 13px; color: #92400e; line-height: 1.5; }"
+                + ".clinic-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; font-size: 13px; color: #334155; }"
+                + ".footer { text-align: center; padding: 20px; font-size: 12px; color: #94a3b8; background: #f8fafc; border-top: 1px solid #f1f5f9; }"
                 + "</style>"
                 + "</head>"
                 + "<body>"
                 + "<div class='container'>"
                 + "  <div class='header'>"
-                + "    <h1>&#129463; " + clinicName + "</h1>"
+                + "    <h1><svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='#ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle;'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/><polyline points='9 12 11 14 15 10'/></svg> " + clinicName + "</h1>"
                 + "    <p>Healthy Smiles, Brighter Lives &bull; Appointment Confirmation</p>"
                 + "  </div>"
                 + "  <div class='content'>"
                 + "    <p style='font-size: 16px; margin-top:0;'>Dear <strong>" + patientName + "</strong>,</p>"
-                + "    <p style='color: #555; line-height: 1.5; font-size: 14px;'>Thank you for choosing " + clinicName + ". Your dental appointment has been scheduled successfully. Please find the details below:</p>"
+                + "    <p style='color: #475569; line-height: 1.5; font-size: 14px;'>Thank you for choosing " + clinicName + ". Your dental appointment has been scheduled successfully. Please find the details below:</p>"
                 + "    <div class='badge-box'>"
                 + "      <span class='badge-no'>Appointment #" + appointmentNo + "</span>"
                 + "    </div>"
@@ -311,18 +358,27 @@ public class EmailUtil {
                 + "      <tr><td class='label'>Treatment / Service</td><td class='value'>" + treatment + "</td></tr>"
                 + "      <tr><td class='label'>Scheduled Date</td><td class='value'><strong>" + dateStr + "</strong></td></tr>"
                 + "      <tr><td class='label'>Scheduled Time</td><td class='value'><strong>" + timeStr + "</strong></td></tr>"
-                + "      <tr><td class='label'>Current Status</td><td class='value'><span style='color:#e67e22; font-weight:bold;'>Pending / Scheduled</span></td></tr>"
+                + "      <tr><td class='label'>Current Status</td><td class='value'><span style='color:#d97706; font-weight:bold;'>Pending / Scheduled</span></td></tr>"
                 + "    </table>"
+                + credentialsSection
                 + "    <div class='info-box'>"
-                + "      <strong>&#128204; Important Patient Instructions:</strong><br>"
+                + "      <div style='font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;'>"
+                + "        <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#d97706' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/><rect x='8' y='2' width='8' height='4' rx='1' ry='1'/></svg>"
+                + "        Important Patient Instructions:"
+                + "      </div>"
                 + "      &bull; Please arrive at the clinic <strong>10 minutes prior</strong> to your scheduled time.<br>"
                 + "      &bull; If you have any previous dental X-rays or ongoing prescriptions, please bring them with you.<br>"
                 + "      &bull; If you need to reschedule or cancel, please notify us at least 24 hours in advance."
                 + "    </div>"
                 + "    <div class='clinic-box'>"
-                + "      <strong>&#128205; Clinic Location & Contact:</strong><br>"
+                + "      <div style='font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:#1a5276;'>"
+                + "        <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#0284c7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'/><circle cx='12' cy='10' r='3'/></svg>"
+                + "        Clinic Location &amp; Contact:"
+                + "      </div>"
                 + "      " + clinicAddress + "<br>"
-                + "      &#128222; Hotline: " + clinicPhone + "<br>"
+                + "      <span style='display:inline-flex; align-items:center; gap:4px; margin-top:4px;'>"
+                + "        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='#0284c7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/></svg> Hotline: " + clinicPhone + ""
+                + "      </span>"
                 + "    </div>"
                 + "  </div>"
                 + "  <div class='footer'>"

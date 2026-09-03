@@ -370,8 +370,21 @@
             <tr>
                 <td>01</td>
                 <td>
-                    <strong><%= bill.getTreatmentType() != null ? bill.getTreatmentType() : (appointment != null ? appointment.getTreatmentType() : "Dental Procedure") %></strong><br>
+                    <%
+                        String treatStr = (bill.getTreatmentType() != null) ? bill.getTreatmentType() : (appointment != null ? appointment.getTreatmentType() : "Dental Procedure");
+                        String[] treatParts = treatStr.split(",\\s*");
+                        if (treatParts.length > 1) {
+                    %>
+                    <strong>Dental Clinical Procedures (<%= treatParts.length %>):</strong>
+                    <div style="margin-top:3px; padding-left:4px; font-weight:600; color:#0369a1;">
+                        <% for (int p = 0; p < treatParts.length; p++) { %>
+                        &bull; <%= treatParts[p] %><%= (p < treatParts.length - 1) ? "<br>" : "" %>
+                        <% } %>
+                    </div>
+                    <% } else { %>
+                    <strong><%= treatStr %></strong><br>
                     <small style="color:#64748b;">Primary clinical procedure performed by dental specialist</small>
+                    <% } %>
                 </td>
                 <td class="text-right" style="color:#64748b;">Treatment</td>
                 <td class="text-right" style="font-weight:600;"><%= String.format("%,.2f", bill.getTreatmentAmount()) %></td>

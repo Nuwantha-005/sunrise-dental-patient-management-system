@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.util.List, com.sunrisedental.model.Dentist, com.sunrisedental.model.Patient" %>
+<%@ page import="java.util.List, com.sunrisedental.model.Dentist, com.sunrisedental.model.Patient, com.sunrisedental.model.Treatment" %>
 <%@ include file="/includes/layout-top.jsp" %>
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
@@ -28,7 +28,7 @@
         </button>
     </div>
 
-    <form action="${pageContext.request.contextPath}/appointments/register" method="post">
+    <form action="${pageContext.request.contextPath}/appointments/register" method="post" id="appointmentForm" onsubmit="return validateAppointmentForm()">
         <input type="hidden" id="patientId" name="patientId" value="<%= request.getAttribute("inputPatientId") != null ? request.getAttribute("inputPatientId") : "" %>">
         <div class="form-grid">
             <div>
@@ -38,14 +38,18 @@
                 </div>
                 <div class="form-group">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <label for="contact" style="margin:0;">Contact Number *</label>
+                        <label for="contact" style="margin:0;">Contact Number (10 Digits) *</label>
                         <button type="button" onclick="openPatientSearchModal()" style="background:none; border:none; color:var(--primary); font-size:0.82rem; font-weight:600; cursor:pointer; padding:0; display:flex; align-items:center; gap:4px;">
                             🔍 Search Registered Patient
                         </button>
                     </div>
-                    <input type="text" id="contact" name="contact" class="form-control" 
+                    <input type="tel" id="contact" name="contact" class="form-control" 
                            placeholder="e.g. 0771234567" 
+                           pattern="[0-9]{10}" maxlength="10" minlength="10"
+                           title="Contact number must be exactly 10 digits (e.g. 0771234567)"
+                           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                            value="<%= request.getAttribute("inputContact") != null ? request.getAttribute("inputContact") : "" %>" required>
+                    <small style="color: #64748b; font-size: 0.82rem; margin-top: 4px; display: block;">Must contain exactly 10 numeric digits.</small>
                 </div>
                 <div class="form-group">
                     <label for="patientName">Patient Name *</label>
@@ -57,9 +61,11 @@
                     <label for="email">Patient Email Address *</label>
                     <input type="email" id="email" name="email" class="form-control" 
                            placeholder="e.g. patient@example.com" 
+                           pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                           title="Please enter a valid email format (e.g. patient@example.com)"
                            value="<%= request.getAttribute("inputEmail") != null ? request.getAttribute("inputEmail") : "" %>" required>
                     <small style="color: #64748b; font-size: 0.82rem; margin-top: 4px; display: block;">
-                        📧 An automated appointment confirmation with schedule and clinic details will be sent to this email.
+                        📧 Automated appointment confirmation and portal credentials will be sent to this email address.
                     </small>
                 </div>
                 <div class="form-group">
@@ -72,7 +78,7 @@
             <div>
                 <div class="form-group">
                     <label for="dentistId">Select Dentist *</label>
-                    <select id="dentistId" name="dentistId" class="form-control" required>
+                    <select id="dentistId" name="dentistId" class="form-control" onchange="onDentistChanged()" required>
                         <option value="">-- Select Dentist --</option>
                         <%
                             List<Dentist> dentists = (List<Dentist>) request.getAttribute("dentists");
@@ -82,32 +88,34 @@
                                 for (Dentist d : dentists) {
                                     boolean isSel = selectedDentistId != null && selectedDentistId == d.getId();
                         %>
-                        <option value="<%= d.getId() %>" <%= isSel ? "selected" : "" %>><%= d.getName() %> - <%= d.getSpecialization() %></option>
+                        <option value="<%= d.getId() %>" <%= isSel ? "selected" : "" %>><%= d.getDentistCode() %> — <%= d.getName() %> (<%= d.getSpecialization() %>)</option>
                         <%      }
                             }
                         %>
                     </select>
                 </div>
+
+                <%-- Dynamic Multi-Treatment Section (Filtered by Dentist) --%>
                 <div class="form-group">
-                    <label for="treatmentType">Treatment Type *</label>
-                    <%
-                        String selTreat = (String) request.getAttribute("inputTreatmentType");
-                    %>
-                    <select id="treatmentType" name="treatmentType" class="form-control" required>
-                        <option value="">-- Select Treatment --</option>
-                        <option value="Teeth Cleaning" <%= "Teeth Cleaning".equals(selTreat) ? "selected" : "" %>>Teeth Cleaning</option>
-                        <option value="Root Canal" <%= "Root Canal".equals(selTreat) ? "selected" : "" %>>Root Canal</option>
-                        <option value="Teeth Whitening" <%= "Teeth Whitening".equals(selTreat) ? "selected" : "" %>>Teeth Whitening</option>
-                        <option value="Braces Adjustment" <%= "Braces Adjustment".equals(selTreat) ? "selected" : "" %>>Braces Adjustment</option>
-                        <option value="Dental Checkup" <%= "Dental Checkup".equals(selTreat) ? "selected" : "" %>>Dental Checkup</option>
-                        <option value="Tooth Extraction" <%= "Tooth Extraction".equals(selTreat) ? "selected" : "" %>>Tooth Extraction</option>
-                        <option value="Filling" <%= "Filling".equals(selTreat) ? "selected" : "" %>>Filling</option>
-                    </select>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label style="margin:0;">Assigned Dentist Treatments *</label>
+                        <button type="button" id="btnAddTreatment" onclick="addTreatmentRow()" class="btn btn-primary btn-sm" style="padding:4px 12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:4px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Treatment
+                        </button>
+                    </div>
+                    <div id="treatmentContainer">
+                        <!-- Populated dynamically based on chosen Dentist -->
+                    </div>
+                    <small id="treatmentHelperText" style="color:var(--text-muted); font-size:0.8rem;">Select a dentist above to view their available treatments &amp; pricing.</small>
                 </div>
+
                 <div class="form-group">
                     <label for="appointmentDate">Appointment Date *</label>
                     <input type="date" id="appointmentDate" name="appointmentDate" class="form-control" 
-                           value="<%= request.getAttribute("inputAppointmentDate") != null ? request.getAttribute("inputAppointmentDate") : "" %>" required>
+                           value="<%= request.getAttribute("inputAppointmentDate") != null ? request.getAttribute("inputAppointmentDate") : "" %>"
+                           onchange="checkDoctorAvailabilityDate()" required>
+                    <div id="doctorAvailabilityWarning" style="display:none; background:#fef2f2; border:1.5px solid #ef4444; color:#991b1b; padding:10px 14px; border-radius:8px; margin-top:8px; font-size:0.88rem;"></div>
                 </div>
                 <div class="form-group">
                     <label for="appointmentTime">Appointment Time *</label>
@@ -294,6 +302,279 @@ function clearAutofilledPatient() {
 
 document.getElementById('patientSearchModal').addEventListener('click', function(e) {
     if (e.target === this) closePatientSearchModal();
+});
+
+// ========== Dentist Treatments Data Map ==========
+<%
+    List<Treatment> allTreatments = (List<Treatment>) request.getAttribute("treatments");
+    String[] savedTreatments = (String[]) request.getAttribute("inputTreatments");
+%>
+const dentistTreatmentsMap = {
+<%
+    if (allTreatments != null) {
+        java.util.Map<Integer, java.util.List<Treatment>> grouped = new java.util.HashMap<>();
+        for (Treatment t : allTreatments) {
+            grouped.computeIfAbsent(t.getDentistId(), k -> new java.util.ArrayList<>()).add(t);
+        }
+        for (java.util.Map.Entry<Integer, java.util.List<Treatment>> entry : grouped.entrySet()) {
+%>
+    "<%= entry.getKey() %>": [
+        <% for (Treatment t : entry.getValue()) { %>
+        { name: "<%= t.getTreatmentName().replace("\"", "\\\"") %>", price: "<%= String.format("%,.2f", t.getPrice()) %>", availableDays: "<%= t.getAvailableDays().replace("\"", "\\\"") %>" },
+        <% } %>
+    ],
+<%      }
+    }
+%>
+};
+
+let initialSavedTreatments = [
+<%
+    if (savedTreatments != null) {
+        for (String st : savedTreatments) {
+%>
+    "<%= st.replace("\"", "\\\"") %>",
+<%      }
+    }
+%>
+];
+
+function buildTreatmentOptionsHTML(dentistId, selectedValue) {
+    const list = dentistTreatmentsMap[dentistId];
+    let html = '';
+    if (!dentistId || !list || list.length === 0) {
+        html = '<option value="">-- No treatments found for this dentist --</option>';
+        return html;
+    }
+    html += '<option value="">-- Select Treatment Procedure --</option>';
+    list.forEach(function(item) {
+        const isSel = (selectedValue && (selectedValue === item.name || selectedValue.startsWith(item.name))) ? 'selected' : '';
+        html += '<option value="' + item.name + '" ' + isSel + '>' + item.name + ' — Rs. ' + item.price + ' (' + item.availableDays + ')</option>';
+    });
+    return html;
+}
+
+function onDentistChanged() {
+    const dentistSelect = document.getElementById('dentistId');
+    const dentistId = dentistSelect.value;
+    const container = document.getElementById('treatmentContainer');
+    const helper = document.getElementById('treatmentHelperText');
+
+    if (!dentistId) {
+        container.innerHTML = '<div style="background:#f8fafc; border:1px dashed #cbd5e1; padding:12px; border-radius:6px; color:#64748b; font-size:0.88rem; text-align:center;">👈 Please select a dentist first to see their available procedures.</div>';
+        helper.textContent = 'Select a dentist above to view their available treatments & pricing.';
+        checkDoctorAvailabilityDate();
+        return;
+    }
+
+    const availableTreatments = dentistTreatmentsMap[dentistId] || [];
+    if (availableTreatments.length === 0) {
+        container.innerHTML = '<div style="background:#fffbeb; border:1px solid #fde68a; padding:12px; border-radius:6px; color:#92400e; font-size:0.88rem;">⚠️ No treatments currently configured for this dentist. Please configure treatments in Admin Dashboard &gt; Treatments.</div>';
+        helper.textContent = 'No procedures assigned to this doctor yet.';
+        checkDoctorAvailabilityDate();
+        return;
+    }
+
+    helper.innerHTML = 'Showing <strong>' + availableTreatments.length + '</strong> treatments available with this doctor. Click <strong>+ Add Treatment</strong> for multiple procedures.';
+
+    const rowsToCreate = (initialSavedTreatments.length > 0) ? initialSavedTreatments : [''];
+    container.innerHTML = '';
+
+    rowsToCreate.forEach(function(savedVal) {
+        createTreatmentRowElement(dentistId, savedVal);
+    });
+
+    initialSavedTreatments = [];
+    checkDuplicateTreatments();
+    checkDoctorAvailabilityDate();
+}
+
+function createTreatmentRowElement(dentistId, selectedValue) {
+    const container = document.getElementById('treatmentContainer');
+    const row = document.createElement('div');
+    row.className = 'treatment-row';
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:8px;';
+
+    const optionsHtml = buildTreatmentOptionsHTML(dentistId, selectedValue);
+
+    row.innerHTML = '<select name="treatmentType" class="form-control" required style="flex:1;" onchange="onTreatmentSelectChanged()">'
+        + optionsHtml
+        + '</select>'
+        + '<button type="button" onclick="removeTreatmentRow(this)" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.3rem; padding:4px;" title="Remove this treatment">✕</button>';
+
+    container.appendChild(row);
+    return row;
+}
+
+function onTreatmentSelectChanged() {
+    checkDuplicateTreatments();
+    checkDoctorAvailabilityDate();
+}
+
+function addTreatmentRow() {
+    const dentistId = document.getElementById('dentistId').value;
+    if (!dentistId) {
+        alert('Please select a dentist first.');
+        document.getElementById('dentistId').focus();
+        return;
+    }
+    const newRow = createTreatmentRowElement(dentistId, '');
+    newRow.querySelector('select').focus();
+    checkDoctorAvailabilityDate();
+}
+
+function removeTreatmentRow(btn) {
+    const container = document.getElementById('treatmentContainer');
+    const rows = container.querySelectorAll('.treatment-row');
+    if (rows.length <= 1) {
+        alert('At least one treatment procedure is required.');
+        return;
+    }
+    btn.closest('.treatment-row').remove();
+    checkDuplicateTreatments();
+    checkDoctorAvailabilityDate();
+}
+
+function checkDuplicateTreatments() {
+    const selects = document.querySelectorAll('#treatmentContainer select[name="treatmentType"]');
+    const values = [];
+    selects.forEach(function(sel) {
+        sel.style.borderColor = '';
+        if (sel.value && values.indexOf(sel.value) !== -1) {
+            sel.style.borderColor = '#ef4444';
+        }
+        if (sel.value) values.push(sel.value);
+    });
+}
+
+function checkDoctorAvailabilityDate() {
+    const dentistId = document.getElementById('dentistId').value;
+    const dateInput = document.getElementById('appointmentDate');
+    const warningBox = document.getElementById('doctorAvailabilityWarning');
+    if (!warningBox || !dateInput) return true;
+
+    if (!dentistId || !dateInput.value) {
+        warningBox.style.display = 'none';
+        dateInput.style.borderColor = '';
+        return true;
+    }
+
+    const parts = dateInput.value.split('-');
+    if (parts.length !== 3) return true;
+    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const selectedDayName = daysOfWeek[dateObj.getDay()];
+
+    const dentistTreatments = dentistTreatmentsMap[dentistId] || [];
+    const selectedTreatmentSelects = document.querySelectorAll('#treatmentContainer select[name="treatmentType"]');
+    
+    let unavailableTreatments = [];
+
+    selectedTreatmentSelects.forEach(function(sel) {
+        const val = sel.value;
+        if (val) {
+            const matched = dentistTreatments.find(t => t.name === val);
+            if (matched && matched.availableDays) {
+                if (!matched.availableDays.toLowerCase().includes(selectedDayName.toLowerCase())) {
+                    unavailableTreatments.push({ name: matched.name, days: matched.availableDays });
+                }
+            }
+        }
+    });
+
+    if (unavailableTreatments.length > 0) {
+        let msg = '⚠️ <strong>Doctor Schedule Availability Alert:</strong> The selected dentist is <strong>NOT available on ' + selectedDayName + 's</strong> for: <ul style="margin:4px 0 0 18px;">';
+        unavailableTreatments.forEach(function(item) {
+            msg += '<li><strong>' + item.name + '</strong> (Doctor\'s available days: <em>' + item.days + '</em>)</li>';
+        });
+        msg += '</ul>Please select an appointment date matching the doctor\'s available schedule.';
+        
+        warningBox.innerHTML = msg;
+        warningBox.style.display = 'block';
+        dateInput.style.borderColor = '#ef4444';
+        return false;
+    } else {
+        warningBox.style.display = 'none';
+        dateInput.style.borderColor = '';
+        return true;
+    }
+}
+
+function validateAppointmentForm() {
+    var contact = document.getElementById('contact').value.trim();
+    var name = document.getElementById('patientName').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var dentistId = document.getElementById('dentistId').value;
+    var appDate = document.getElementById('appointmentDate').value;
+    var appTime = document.getElementById('appointmentTime').value;
+
+    if (!contact) {
+        alert("Please enter the patient's contact number.");
+        document.getElementById('contact').focus();
+        return false;
+    }
+
+    var contactRegex = /^[0-9]{10}$/;
+    if (!contactRegex.test(contact)) {
+        alert("Contact number must contain exactly 10 digits (e.g. 0771234567).");
+        document.getElementById('contact').focus();
+        return false;
+    }
+
+    if (!name) {
+        alert("Please enter the patient's full name.");
+        document.getElementById('patientName').focus();
+        return false;
+    }
+
+    var emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!email || !emailRegex.test(email)) {
+        alert("Please enter a valid email address (e.g. patient@example.com).");
+        document.getElementById('email').focus();
+        return false;
+    }
+
+    if (!dentistId) {
+        alert("Please select a Dentist for the appointment.");
+        document.getElementById('dentistId').focus();
+        return false;
+    }
+
+    var treatmentSelects = document.querySelectorAll('#treatmentContainer select[name="treatmentType"]');
+    var hasSelectedTreatment = false;
+    treatmentSelects.forEach(function(sel) {
+        if (sel.value && sel.value.trim().length > 0) {
+            hasSelectedTreatment = true;
+        }
+    });
+
+    if (!hasSelectedTreatment) {
+        alert("Please select at least one treatment procedure for the appointment.");
+        return false;
+    }
+
+    if (!appDate) {
+        alert("Please select an appointment date.");
+        document.getElementById('appointmentDate').focus();
+        return false;
+    }
+
+    if (!appTime) {
+        alert("Please select an appointment time.");
+        document.getElementById('appointmentTime').focus();
+        return false;
+    }
+
+    if (!checkDoctorAvailabilityDate()) {
+        alert("The selected appointment date is not valid for the assigned dentist's schedule.");
+        return false;
+    }
+
+    return true;
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    onDentistChanged();
 });
 </script>
 

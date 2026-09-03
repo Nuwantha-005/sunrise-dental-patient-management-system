@@ -111,9 +111,54 @@ public class AppointmentServlet extends HttpServlet {
         String contact = req.getParameter("contact");
         String email = req.getParameter("email");
         String address = req.getParameter("address");
-        int dentistId = Integer.parseInt(req.getParameter("dentistId"));
-        
+        String dentistIdParam = req.getParameter("dentistId");
         String[] treatmentTypeArr = req.getParameterValues("treatmentType");
+        String appointmentDateParam = req.getParameter("appointmentDate");
+        String appointmentTimeParam = req.getParameter("appointmentTime");
+
+        // Preserve inputs in request attributes
+        req.setAttribute("inputPatientId", patientIdParam);
+        req.setAttribute("inputPatientName", patientName);
+        req.setAttribute("inputContact", contact);
+        req.setAttribute("inputEmail", email);
+        req.setAttribute("inputAddress", address);
+        req.setAttribute("inputTreatments", treatmentTypeArr);
+        req.setAttribute("inputAppointmentDate", appointmentDateParam);
+        req.setAttribute("inputAppointmentTime", appointmentTimeParam);
+
+        // Required-field and format validation
+        if (contact == null || !contact.trim().matches("^\\d{10}$")) {
+            req.setAttribute("errorMessage", "Contact number must contain exactly 10 digits (e.g. 0771234567).");
+            showRegisterForm(req, resp);
+            return;
+        }
+
+        if (patientName == null || patientName.trim().isBlank()) {
+            req.setAttribute("errorMessage", "Patient Name is required.");
+            showRegisterForm(req, resp);
+            return;
+        }
+
+        if (email == null || !email.trim().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            req.setAttribute("errorMessage", "Please provide a valid email address (e.g. patient@example.com).");
+            showRegisterForm(req, resp);
+            return;
+        }
+
+        int dentistId = 0;
+        try {
+            if (dentistIdParam != null && !dentistIdParam.isBlank()) {
+                dentistId = Integer.parseInt(dentistIdParam);
+                req.setAttribute("inputDentistId", dentistId);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        if (dentistId <= 0) {
+            req.setAttribute("errorMessage", "Please select a Dentist for this appointment.");
+            showRegisterForm(req, resp);
+            return;
+        }
+
         StringBuilder treatmentBuilder = new StringBuilder();
         if (treatmentTypeArr != null) {
             for (String t : treatmentTypeArr) {
@@ -123,10 +168,40 @@ public class AppointmentServlet extends HttpServlet {
                 }
             }
         }
-        String treatmentType = treatmentBuilder.length() > 0 ? treatmentBuilder.toString() : "Dental Checkup";
-        
-        Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
-        Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
+        if (treatmentBuilder.length() == 0) {
+            req.setAttribute("errorMessage", "Please select at least one treatment procedure for the appointment.");
+            showRegisterForm(req, resp);
+            return;
+        }
+        String treatmentType = treatmentBuilder.toString();
+
+        if (appointmentDateParam == null || appointmentDateParam.isBlank()) {
+            req.setAttribute("errorMessage", "Appointment Date is required.");
+            showRegisterForm(req, resp);
+            return;
+        }
+        Date appointmentDate;
+        try {
+            appointmentDate = Date.valueOf(appointmentDateParam);
+        } catch (IllegalArgumentException e) {
+            req.setAttribute("errorMessage", "Invalid Appointment Date format.");
+            showRegisterForm(req, resp);
+            return;
+        }
+
+        if (appointmentTimeParam == null || appointmentTimeParam.isBlank()) {
+            req.setAttribute("errorMessage", "Appointment Time is required.");
+            showRegisterForm(req, resp);
+            return;
+        }
+        Time appointmentTime;
+        try {
+            appointmentTime = Time.valueOf(appointmentTimeParam + ":00");
+        } catch (IllegalArgumentException e) {
+            req.setAttribute("errorMessage", "Invalid Appointment Time format.");
+            showRegisterForm(req, resp);
+            return;
+        }
 
         // Availability check: ensure dentist is available on the selected day of the week for the selected procedures
         String selectedDayName = appointmentDate.toLocalDate().getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH);
@@ -362,9 +437,44 @@ public class AppointmentServlet extends HttpServlet {
         String contact = req.getParameter("contact");
         String email = req.getParameter("email");
         String address = req.getParameter("address");
-        int dentistId = Integer.parseInt(req.getParameter("dentistId"));
-        
+        String dentistIdParam = req.getParameter("dentistId");
         String[] treatmentTypeArr = req.getParameterValues("treatmentType");
+        String appointmentDateParam = req.getParameter("appointmentDate");
+        String appointmentTimeParam = req.getParameter("appointmentTime");
+        String status = req.getParameter("status");
+
+        // Required-field and format validation
+        if (contact == null || !contact.trim().matches("^\\d{10}$")) {
+            req.setAttribute("errorMessage", "Contact number must contain exactly 10 digits (e.g. 0771234567).");
+            showEditForm(req, resp, id);
+            return;
+        }
+
+        if (patientName == null || patientName.trim().isBlank()) {
+            req.setAttribute("errorMessage", "Patient Name is required.");
+            showEditForm(req, resp, id);
+            return;
+        }
+
+        if (email == null || !email.trim().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            req.setAttribute("errorMessage", "Please provide a valid email address (e.g. patient@example.com).");
+            showEditForm(req, resp, id);
+            return;
+        }
+
+        int dentistId = 0;
+        try {
+            if (dentistIdParam != null && !dentistIdParam.isBlank()) {
+                dentistId = Integer.parseInt(dentistIdParam);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        if (dentistId <= 0) {
+            req.setAttribute("errorMessage", "Please select a Dentist.");
+            showEditForm(req, resp, id);
+            return;
+        }
+
         StringBuilder treatmentBuilder = new StringBuilder();
         if (treatmentTypeArr != null) {
             for (String t : treatmentTypeArr) {
@@ -374,11 +484,40 @@ public class AppointmentServlet extends HttpServlet {
                 }
             }
         }
-        String treatmentType = treatmentBuilder.length() > 0 ? treatmentBuilder.toString() : "Dental Checkup";
-        
-        Date appointmentDate = Date.valueOf(req.getParameter("appointmentDate"));
-        Time appointmentTime = Time.valueOf(req.getParameter("appointmentTime") + ":00");
-        String status = req.getParameter("status");
+        if (treatmentBuilder.length() == 0) {
+            req.setAttribute("errorMessage", "Please select at least one treatment procedure.");
+            showEditForm(req, resp, id);
+            return;
+        }
+        String treatmentType = treatmentBuilder.toString();
+
+        if (appointmentDateParam == null || appointmentDateParam.isBlank()) {
+            req.setAttribute("errorMessage", "Appointment Date is required.");
+            showEditForm(req, resp, id);
+            return;
+        }
+        Date appointmentDate;
+        try {
+            appointmentDate = Date.valueOf(appointmentDateParam);
+        } catch (IllegalArgumentException e) {
+            req.setAttribute("errorMessage", "Invalid Appointment Date format.");
+            showEditForm(req, resp, id);
+            return;
+        }
+
+        if (appointmentTimeParam == null || appointmentTimeParam.isBlank()) {
+            req.setAttribute("errorMessage", "Appointment Time is required.");
+            showEditForm(req, resp, id);
+            return;
+        }
+        Time appointmentTime;
+        try {
+            appointmentTime = Time.valueOf(appointmentTimeParam + ":00");
+        } catch (IllegalArgumentException e) {
+            req.setAttribute("errorMessage", "Invalid Appointment Time format.");
+            showEditForm(req, resp, id);
+            return;
+        }
 
         // Availability check: ensure dentist is available on the selected day of the week for the selected procedures
         String selectedDayName = appointmentDate.toLocalDate().getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH);

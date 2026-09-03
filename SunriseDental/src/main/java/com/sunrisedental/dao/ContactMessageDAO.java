@@ -72,6 +72,16 @@ public class ContactMessageDAO {
         }
     }
 
+    /** Delete a contact message by ID */
+    public void delete(int id) throws SQLException {
+        String sql = "DELETE FROM contact_messages WHERE id = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
+
     private ContactMessage map(ResultSet rs) throws SQLException {
         ContactMessage m = new ContactMessage();
         m.setId(rs.getInt("id"));

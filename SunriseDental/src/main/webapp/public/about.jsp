@@ -105,7 +105,7 @@
         </div>
         <div class="team-grid">
             <div class="team-card">
-                <img src="${pageContext.request.contextPath}/images/4.jpg" alt="Dr. Kamal Perera">
+                <img src="${pageContext.request.contextPath}/images/doctor-1.png" alt="Dr. Kamal Perera">
                 <div class="team-card-body">
                     <h3>Dr. Kamal Perera</h3>
                     <div class="role">Oral &amp; Maxillofacial Surgeon</div>
@@ -113,7 +113,7 @@
                 </div>
             </div>
             <div class="team-card">
-                <img src="${pageContext.request.contextPath}/images/1.jpg" alt="Dr. Nimali Silva">
+                <img src="${pageContext.request.contextPath}/images/doctor-2.png" alt="Dr. Nimali Silva">
                 <div class="team-card-body">
                     <h3>Dr. Nimali Silva</h3>
                     <div class="role">Cosmetic &amp; Aesthetic Dentist</div>
@@ -121,7 +121,7 @@
                 </div>
             </div>
             <div class="team-card">
-                <img src="${pageContext.request.contextPath}/images/2.jpg" alt="Dr. Ruwan Jayasuriya">
+                <img src="${pageContext.request.contextPath}/images/doctor-3.png" alt="Dr. Ruwan Jayasuriya">
                 <div class="team-card-body">
                     <h3>Dr. Ruwan Jayasuriya</h3>
                     <div class="role">Consultant Orthodontist</div>
@@ -153,7 +153,6 @@
         <p>Join thousands of patients who trust us with their smiles. Your first consultation is just a call away.</p>
         <div class="cta-actions">
             <a href="${pageContext.request.contextPath}/contact" class="btn btn-white btn-lg">Book Appointment</a>
-            <a href="${pageContext.request.contextPath}/careers" class="btn btn-gold btn-lg">Join Our Team</a>
         </div>
     </div>
 </section>
@@ -176,7 +175,6 @@
                 <ul>
                     <li><a href="${pageContext.request.contextPath}/home">Home</a></li>
                     <li><a href="${pageContext.request.contextPath}/about">About Us</a></li>
-                    <li><a href="${pageContext.request.contextPath}/careers">Careers</a></li>
                     <li><a href="${pageContext.request.contextPath}/contact">Contact</a></li>
                 </ul>
             </div>

@@ -11,6 +11,9 @@
         <span style="color:rgba(255,255,255,0.8);">Patient Management System</span>
     </div>
     <nav class="sidebar-nav">
+        <%
+            com.sunrisedental.model.User sidebarUser = (com.sunrisedental.model.User) session.getAttribute("user");
+        %>
         <a href="${pageContext.request.contextPath}/dashboard"
            class="nav-item ${activeMenu == 'dashboard' ? 'active' : ''}">
             <span class="icon">
@@ -24,6 +27,7 @@
             <span>Dashboard</span>
         </a>
 
+        <% if (sidebarUser == null || !sidebarUser.isAdmin()) { %>
         <a href="${pageContext.request.contextPath}/appointments/register"
            class="nav-item ${activeMenu == 'appointments' ? 'active' : ''}">
             <span class="icon">
@@ -37,6 +41,7 @@
             </span>
             <span>Appointments</span>
         </a>
+        <% } %>
 
         <a href="${pageContext.request.contextPath}/appointments/history"
            class="nav-item ${activeMenu == 'history' ? 'active' : ''}">
@@ -48,6 +53,20 @@
                 </svg>
             </span>
             <span>Booking History</span>
+        </a>
+
+        <a href="${pageContext.request.contextPath}/bills/list"
+           class="nav-item ${activeMenu == 'bills' ? 'active' : ''}">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </span>
+            <span>Bills & Invoices</span>
         </a>
 
         <a href="${pageContext.request.contextPath}/patients/list"
@@ -76,6 +95,33 @@
             </span>
             <span>Dentists</span>
         </a>
+
+        <a href="${pageContext.request.contextPath}/treatments/list"
+           class="nav-item ${activeMenu == 'treatments' ? 'active' : ''}">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </svg>
+            </span>
+            <span>Treatments</span>
+        </a>
+
+        <%
+            if (sidebarUser != null && sidebarUser.isAdmin()) {
+        %>
+        <a href="${pageContext.request.contextPath}/receptionists/list"
+           class="nav-item ${activeMenu == 'receptionists' ? 'active' : ''}">
+            <span class="icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </span>
+            <span>Receptionists</span>
+        </a>
+        <% } %>
 
         <a href="${pageContext.request.contextPath}/contact-messages"
            class="nav-item ${activeMenu == 'contactMessages' ? 'active' : ''}">

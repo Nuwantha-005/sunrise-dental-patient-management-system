@@ -79,6 +79,10 @@
     <servlet-name>AppointmentServlet</servlet-name>
     <url-pattern>/appointments/complete/*</url-pattern>
   </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>AppointmentServlet</servlet-name>
+    <url-pattern>/appointments/delete/*</url-pattern>
+  </servlet-mapping>
 
   <servlet>
     <servlet-name>PatientServlet</servlet-name>
@@ -146,6 +150,10 @@
     <servlet-name>BillServlet</servlet-name>
     <url-pattern>/billing/receipt/*</url-pattern>
   </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>BillServlet</servlet-name>
+    <url-pattern>/bills/list</url-pattern>
+  </servlet-mapping>
 
   <servlet>
     <servlet-name>ReportServlet</servlet-name>
@@ -181,5 +189,80 @@
   <servlet-mapping>
     <servlet-name>ContactMessagesServlet</servlet-name>
     <url-pattern>/contact-messages</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ContactMessagesServlet</servlet-name>
+    <url-pattern>/contact-messages/delete/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <servlet-class>com.sunrisedental.controller.ReceptionistServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <url-pattern>/receptionists</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <url-pattern>/receptionists/list</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <url-pattern>/receptionists/add</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <url-pattern>/receptionists/edit/*</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ReceptionistServlet</servlet-name>
+    <url-pattern>/receptionists/delete/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <servlet-class>com.sunrisedental.controller.TreatmentServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <url-pattern>/treatments</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <url-pattern>/treatments/list</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <url-pattern>/treatments/add</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <url-pattern>/treatments/edit/*</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>TreatmentServlet</servlet-name>
+    <url-pattern>/treatments/delete/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>PatientPortalServlet</servlet-name>
+    <servlet-class>com.sunrisedental.controller.PatientPortalServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>PatientPortalServlet</servlet-name>
+    <url-pattern>/patient-login</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>PatientPortalServlet</servlet-name>
+    <url-pattern>/patient-dashboard</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>PatientPortalServlet</servlet-name>
+    <url-pattern>/patient-logout</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>PatientPortalServlet</servlet-name>
+    <url-pattern>/patient-receipt/*</url-pattern>
   </servlet-mapping>
 </web-app>

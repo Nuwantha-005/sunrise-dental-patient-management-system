@@ -2,8 +2,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta charset="U0TF-8">
+    <meta name="viewport" content="wid
+    0th=device-width, initial-scale=1.0">
     <title>Login - Sunrise Dental Clinic</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/login.css">
@@ -21,6 +23,16 @@
                 <h2>Sunrise Dental Clinic</h2>
                 <p class="login-subtitle">Patient Management Portal</p>
             </div>
+
+            <!-- Success / Logout Notification -->
+            <% if (request.getParameter("logout") != null) { %>
+                <div class="alert alert-success" style="display:flex; align-items:center; gap:8px; margin-bottom:18px; background:#ecfdf5; border:1px solid #10b981; color:#065f46; border-radius:8px; padding:10px 14px; font-size:0.9rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>You have been logged out successfully.</span>
+                </div>
+            <% } %>
 
             <!-- Error Notification -->
             <% if (request.getAttribute("error") != null) { %>
@@ -63,9 +75,6 @@
                     </svg>
                 </button>
             </form>
-
-          
-            
         </div>
     </div>
 </body>

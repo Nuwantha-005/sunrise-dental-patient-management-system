@@ -6,11 +6,47 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.sunrisedental.model.Bill;
 import com.sunrisedental.util.DBConnection;
 
 public class BillDAO {
+
+    public List<Bill> findAll(String keyword) throws SQLException {
+        String base = "SELECT b.id, b.bill_no, b.appointment_id, b.treatment_amount, b.consultation_fee, "
+                + "b.other_charges, b.total_amount, b.created_at, "
+                + "a.appointment_no, p.name AS patient_name, d.name AS dentist_name, a.treatment_type "
+                + "FROM bills b "
+                + "JOIN appointments a ON b.appointment_id = a.id "
+                + "JOIN patients p ON a.patient_id = p.id "
+                + "JOIN dentists d ON a.dentist_id = d.id ";
+        String where = "";
+        if (keyword != null && !keyword.isBlank()) {
+            where = "WHERE b.bill_no LIKE ? OR p.name LIKE ? OR a.appointment_no LIKE ? OR d.name LIKE ? ";
+        }
+        String sql = base + where + "ORDER BY b.id DESC";
+
+        List<Bill> bills = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = "%" + keyword.trim() + "%";
+                ps.setString(1, kw);
+                ps.setString(2, kw);
+                ps.setString(3, kw);
+                ps.setString(4, kw);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    bills.add(mapBill(rs));
+                }
+            }
+        }
+        return bills;
+    }
+
 
     public Bill findByAppointmentId(int appointmentId) throws SQLException {
         String sql = "SELECT b.id, b.bill_no, b.appointment_id, b.treatment_amount, b.consultation_fee, "

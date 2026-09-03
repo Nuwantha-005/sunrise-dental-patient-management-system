@@ -7,6 +7,7 @@ public class User {
     private String fullName;
     private String email;
     private String contact;
+    private String role = "ADMIN"; // "ADMIN" or "RECEPTIONIST"
 
     public User() {
     }
@@ -17,6 +18,16 @@ public class User {
         this.fullName = fullName;
         this.email = email;
         this.contact = contact;
+        this.role = "ADMIN";
+    }
+
+    public User(int id, String username, String fullName, String email, String contact, String role) {
+        this.id = id;
+        this.username = username;
+        this.fullName = fullName;
+        this.email = email;
+        this.contact = contact;
+        this.role = role != null ? role : "ADMIN";
     }
 
     public int getId() { return id; }
@@ -36,4 +47,15 @@ public class User {
 
     public String getContact() { return contact; }
     public void setContact(String contact) { this.contact = contact; }
+
+    public String getRole() { return role != null ? role : "ADMIN"; }
+    public void setRole(String role) { this.role = role; }
+
+    public boolean isAdmin() {
+        return role == null || "ADMIN".equalsIgnoreCase(role.trim());
+    }
+
+    public boolean isReceptionist() {
+        return "RECEPTIONIST".equalsIgnoreCase(role != null ? role.trim() : "");
+    }
 }

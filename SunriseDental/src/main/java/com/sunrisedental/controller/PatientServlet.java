@@ -58,11 +58,32 @@ public class PatientServlet extends HttpServlet {
             throws ServletException, IOException {
         String path = getRequestPath(req);
         try {
+            String name = req.getParameter("name");
+            String contact = req.getParameter("contact");
+            String email = req.getParameter("email");
+            String address = req.getParameter("address");
+
+            // Required-field and format validation
+            if (name == null || name.trim().isBlank()) {
+                forwardValidationError(req, resp, path, "Patient Name is required.");
+                return;
+            }
+
+            if (contact == null || !contact.trim().matches("^\\d{10}$")) {
+                forwardValidationError(req, resp, path, "Contact number must contain exactly 10 digits (e.g. 0771234567).");
+                return;
+            }
+
+            if (email == null || !email.trim().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+                forwardValidationError(req, resp, path, "Please provide a valid email format (e.g. patient@example.com).");
+                return;
+            }
+
             Patient patient = new Patient();
-            patient.setName(req.getParameter("name"));
-            patient.setContact(req.getParameter("contact"));
-            patient.setEmail(req.getParameter("email"));
-            patient.setAddress(req.getParameter("address"));
+            patient.setName(name.trim());
+            patient.setContact(contact.trim());
+            patient.setEmail(email.trim());
+            patient.setAddress(address != null ? address.trim() : "");
 
             if (path.startsWith("/patients/edit/")) {
                 patient.setId(Integer.parseInt(path.substring("/patients/edit/".length())));
@@ -74,6 +95,27 @@ public class PatientServlet extends HttpServlet {
         } catch (SQLException e) {
             throw new ServletException("Database error", e);
         }
+    }
+
+    private void forwardValidationError(HttpServletRequest req, HttpServletResponse resp, String path, String errorMsg)
+            throws ServletException, IOException, SQLException {
+        req.setAttribute("errorMessage", errorMsg);
+        req.setAttribute("inputName", req.getParameter("name"));
+        req.setAttribute("inputContact", req.getParameter("contact"));
+        req.setAttribute("inputEmail", req.getParameter("email"));
+        req.setAttribute("inputAddress", req.getParameter("address"));
+
+        boolean isEdit = path.startsWith("/patients/edit/");
+        if (isEdit) {
+            int id = Integer.parseInt(path.substring("/patients/edit/".length()));
+            Patient existing = patientDAO.findById(id);
+            req.setAttribute("patient", existing);
+            req.setAttribute("pageTitle", "Edit Patient");
+        } else {
+            req.setAttribute("pageTitle", "Add Patient");
+        }
+        req.setAttribute("activeMenu", "patients");
+        req.getRequestDispatcher("/patients/form.jsp").forward(req, resp);
     }
 
     private String getRequestPath(HttpServletRequest req) {
