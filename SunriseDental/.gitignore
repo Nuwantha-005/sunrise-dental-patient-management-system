@@ -1,0 +1,14 @@
+# Build output
+/build/
+/bin/
+
+# Sensitive configuration files
+/src/main/resources/db.properties
+/src/main/resources/email.properties
+
+# Compiled Java files
+*.class
+
+# Temporary files
+*.log
+*.tmp
