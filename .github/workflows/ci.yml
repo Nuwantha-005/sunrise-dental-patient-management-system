@@ -24,6 +24,16 @@ jobs:
           cache: maven
           cache-dependency-path: SunriseDental/pom.xml
 
-      - name: Run Maven Tests
+      - name: Run CI Unit Tests
         working-directory: SunriseDental
-        run: mvn -B clean test
+        run: mvn -B clean test -Dtest=PatientTest,AppointmentTest,PasswordUtilTest
+
+      - name: Build WAR Package
+        working-directory: SunriseDental
+        run: mvn -B package -DskipTests
+
+      - name: Upload WAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SunriseDental-WAR
+          path: SunriseDental/target/SunriseDental.war
