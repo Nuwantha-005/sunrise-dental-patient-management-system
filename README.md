@@ -12,34 +12,34 @@ The system provides dedicated interfaces for administrators, receptionists, and 
 ### Home Page
 The public home page provides access to clinic information, services, appointment booking, and patient/staff login options.
 
-![Sunrise Dental Clinic Home Page](screenshots/public_1.png)
+![Sunrise Dental Clinic Home Page](SunriseDental/screenshots/public_1.png)
 
 
 
 ### Administrator Dashboard
 The administrator dashboard provides an overview of clinic operations and access to patient, appointment, dentist, treatment, billing, staff, and reporting functions.
 
-![Administrator Dashboard](screenshots/admin_11.png)
+![Administrator Dashboard](SunriseDental/screenshots/admin_11.png)
 
 ### Patient Management
 Allows authorized staff to register new patients, view patient information, update records, and manage patient details.
 
-![Patient Management](screenshots/admin_1.png)
+![Patient Management](SunriseDental/screenshots/admin_1.png)
 
 ### Appointment Management
 Allows staff to schedule and manage appointments while validating dentist availability and preventing scheduling conflicts.
 
-![Appointment Management](screenshots/rep_0.png)
+![Appointment Management](SunriseDental/screenshots/rep_0.png)
 
 ### Dentist Management
 Provides functionality for administrators to manage dentist information and availability.
 
-![Dentist Management](screenshots/admin_2.png)
+![Dentist Management](SunriseDental/screenshots/admin_2.png)
 
 ### Billing Management
 Allows staff to generate and manage patient bills and payment information.
 
-![Billing Management](screenshots/rep_1.png)
+![Billing Management](SunriseDental/screenshots/rep_1.png)
 
 
 
@@ -47,13 +47,13 @@ Allows staff to generate and manage patient bills and payment information.
 
 ### Patient Portal
 Patients can securely access their profile, appointment history, and billing information through the dedicated patient portal.
-![Patient Portal](screenshots/patient_1.png)
-![Patient Portal](screenshots/patient_2.png)
+![Patient Portal](SunriseDental/screenshots/patient_1.png)
+![Patient Portal](SunriseDental/screenshots/patient_2.png)
 
 ### Appointment Confirmation Email
 After a successful appointment booking, the system automatically sends a confirmation email containing the appointment details and patient portal information.
 
-![Appointment Confirmation Email](screenshots/email.png)
+![Appointment Confirmation Email](SunriseDental/screenshots/email.png)
 
 
 
