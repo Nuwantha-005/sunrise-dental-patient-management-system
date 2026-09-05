@@ -4,6 +4,61 @@
 
 Sunrise Dental Clinic Patient Management System is a Java-based web application developed to manage the daily operations of a dental clinic. The system provides functionality for administrators, receptionists and patients, including patient management, appointment scheduling, dentist and treatment management, billing, reporting and patient portal access.
 
+
+## User Interfaces
+
+The system provides dedicated interfaces for administrators, receptionists, and patients to support the daily operations of Sunrise Dental Clinic.
+
+### Home Page
+The public home page provides access to clinic information, services, appointment booking, and patient/staff login options.
+
+![Sunrise Dental Clinic Home Page](screenshots/public_1.png)
+
+
+
+### Administrator Dashboard
+The administrator dashboard provides an overview of clinic operations and access to patient, appointment, dentist, treatment, billing, staff, and reporting functions.
+
+![Administrator Dashboard](screenshots/admin_11.png)
+
+### Patient Management
+Allows authorized staff to register new patients, view patient information, update records, and manage patient details.
+
+![Patient Management](screenshots/admin_1.png)
+
+### Appointment Management
+Allows staff to schedule and manage appointments while validating dentist availability and preventing scheduling conflicts.
+
+![Appointment Management](screenshots/rep_0.png)
+
+### Dentist Management
+Provides functionality for administrators to manage dentist information and availability.
+
+![Dentist Management](screenshots/admin_2.png)
+
+### Billing Management
+Allows staff to generate and manage patient bills and payment information.
+
+![Billing Management](screenshots/rep_1.png)
+
+
+
+
+
+### Patient Portal
+Patients can securely access their profile, appointment history, and billing information through the dedicated patient portal.
+![Patient Portal](screenshots/patient_1.png)
+![Patient Portal](screenshots/patient_2.png)
+
+### Appointment Confirmation Email
+After a successful appointment booking, the system automatically sends a confirmation email containing the appointment details and patient portal information.
+
+![Appointment Confirmation Email](screenshots/email.png)
+
+
+
+
+
 ## Main Features
 
 - Staff authentication and role-based access
