@@ -13,6 +13,8 @@ The system provides dedicated interfaces for administrators, receptionists, and 
 The public home page provides access to clinic information, services, appointment booking, and patient/staff login options.
 
 ![Sunrise Dental Clinic Home Page](SunriseDental/screenshots/public_1.png)
+![Sunrise Dental Clinic Home Page](SunriseDental/screenshots/public_2.png)
+![Sunrise Dental Clinic Home Page](SunriseDental/screenshots/public_3.png)
 
 
 
